@@ -1,20 +1,19 @@
-import Head from "next/head";
-import { Inter } from "next/font/google";
-import { Convert } from "@/components/convert";
-import { computed, signal } from "@preact/signals-react";
-import { TSource } from "@/pages/index.d";
+import Head from 'next/head';
+import { Inter } from 'next/font/google';
 
-const inter = Inter({ subsets: ["latin"] });
+import { computed, signal } from '@preact/signals-react';
+import { TSource } from '@/pages/index.d';
+import Convert from '@/components/convert';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const source = signal<TSource>({
-  prefix: "PREFIX",
-  url: "http://",
-  raw: "",
+  prefix: 'PREFIX',
+  url: 'http://',
+  raw: '',
 });
 
-export const sourcePrefix = computed(() => source.value.prefix);
-export const sourceUrl = computed(() => source.value.url);
-export const sourceRaw = computed(() => source.value.raw);
+export const sourceObject = computed(() => source.value);
 
 export default function Home() {
   return (
