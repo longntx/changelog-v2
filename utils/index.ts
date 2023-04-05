@@ -7,100 +7,94 @@ type TRegConvert = ({
   sourceString,
   bitBucketRepoLink,
   projectPrefix,
-}: TRegConvertParams) => string;
+}: TRegConvertParams) => string | undefined;
 export const regConvert: TRegConvert = ({
   sourceString,
   bitBucketRepoLink,
   projectPrefix,
-}): string => {
-  let m;
-  let finalRes = '';
-  const res: string[] = [];
+}) => {
   const regexVariables = generateDefaultVariables(projectPrefix);
 
-  const layer0 = sourceString
+  const modifiedSourceString = getModifiedSourceString(
+    sourceString,
+    bitBucketRepoLink,
+    regexVariables,
+  );
+  const res = processMatches(
+    modifiedSourceString,
+    regexVariables.regexForReserve,
+  );
+
+  return generateFinalRes(res);
+};
+
+function extractNumber(str: string) {
+  const match = /(-)([0-9]+)/gm.exec(str);
+  return match ? Number(match[2]) : null;
+}
+
+function generateFinalRes(res: string[]) {
+  const regex = /(CMD-[0-9]+)/g;
+  const uniqueArr = Array.from(
+    new Set(res.map((ele) => ele.match(regex)?.[0])),
+  );
+
+  return uniqueArr.reduce((finalRes, ticket) => {
+    const groupPrs = res.filter((item) => item.includes(`[${ticket}]`));
+    if (groupPrs.length <= 1) return `${finalRes}${groupPrs[0].trim()}\n`;
+
+    const [, ...cloneGroupPRs] = groupPrs;
+    const arrayPrUrls = cloneGroupPRs
+      .reverse()
+      .map((item) => item.match(/\[PR#.+\)/)?.[0] || '');
+
+    return `${finalRes}${groupPrs[0].trim()}, ${arrayPrUrls
+      .join(', ')
+      .trim()}\n`;
+  }, '');
+}
+
+function getModifiedSourceString(
+  sourceString: string,
+  bitBucketRepoLink: string,
+  regexVariables: TRegex,
+) {
+  console.log('-> bitBucketRepoLink', bitBucketRepoLink);
+  return sourceString
     .replace(
       regexVariables.regex,
-      `* [$1]$3 [PR#$6](` + bitBucketRepoLink.trim() + `$6)`,
+      `* [$1]$3 [PR#$6](${bitBucketRepoLink.trim()}$6)`,
     )
     .replace(regexVariables.regexMultilines, '\n')
     .replace(regexVariables.regexMergin, '');
+}
 
-  console.log('-> layer0', layer0);
+function processMatches(str: string, regexForReserve: any) {
+  let m;
+  const res: string[] = [];
 
-  // tslint:disable-next-line:no-conditional-assignment
-  while ((m = regexVariables.regexForReserve.exec(layer0)) !== null) {
-    // This is necessary to avoid infinite loops with zero-width matches
-    if (m.index === regexVariables.regexForReserve.lastIndex) {
-      regexVariables.regexForReserve.lastIndex++;
-    }
-
-    // The result can be accessed through the `m`-variable.
-    m.forEach((match, groupIndex) => {
-      if (match) {
-        res.push(match);
-      }
-    });
+  while ((m = regexForReserve.exec(str)) !== null) {
+    if (m.index === regexForReserve.lastIndex) regexForReserve.lastIndex++;
+    // @ts-ignore
+    m.forEach((match) => match && res.push(match));
   }
 
-  res.sort((a: string, b: string) => {
-    const extractNumber = (str: string) => {
-      const match = /(-)([0-9]+)/gm.exec(str);
-      return match ? Number(match[2]) : null;
-    };
-
+  return res.sort((a, b) => {
     const numA = extractNumber(a);
     const numB = extractNumber(b);
-
-    if (numA !== null && numB !== null) {
-      return numA - numB;
-    }
-    return -1;
+    return numA !== null && numB !== null ? numA - numB : -1;
   });
+}
 
-  console.log('-> res', res);
-  // res.reverse().map((element) => (finalRes += element + '\n'));
-  // console.log('-> finalRes', finalRes);
-  // return finalRes;
-  return '';
+type TRegex = {
+  regexForReserve: RegExp;
+  regexToCheckDuplicate: RegExp;
+  regex: RegExp;
+  regexMultilines: RegExp;
+  regexMergin: RegExp;
 };
 
-const checkExist = (
-  source: string,
-  arrayToCheck: Array<string>,
-  regexVariables: any,
-): {
-  exist: boolean;
-  index: number;
-  duplicate: string;
-  result: string;
-} => {
-  let indexExistPR = -1;
-  const regExp = regexVariables.regexToCheckDuplicate;
-  regExp.lastIndex = 0;
-  const subString = regExp.exec(source);
-  if (subString && subString[1]) {
-    indexExistPR = arrayToCheck.findIndex((value) =>
-      value.includes(`[${subString[1]}]`),
-    );
-  }
-  if (indexExistPR > -1) {
-    return {
-      exist: true,
-      index: indexExistPR,
-      duplicate: subString[1],
-      result: subString[3],
-    };
-  }
-  return {
-    exist: false,
-    index: -1,
-    duplicate: '',
-    result: '',
-  };
-};
-
-const generateDefaultVariables = (projectPrefix: string) => {
+const generateDefaultVariables = (projectPrefix: string): TRegex => {
   return {
     regex: new RegExp(
       `(${projectPrefix.trim()}-([0-9]*)):(.*)((.|\\s)*?- #([0-9]*))(.*)`,
