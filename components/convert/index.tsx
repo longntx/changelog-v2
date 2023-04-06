@@ -1,12 +1,13 @@
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { Controller, SubmitHandler, useForm } from 'react-hook-form';
 import { regConvert } from '@/utils';
-import Select from '@/components/common/select';
+import Select, { TItem } from '@/components/common/select';
 
 type FormValues = {
   prefix: string;
   url: string;
   raw: string;
   result: string;
+  type: TItem;
 };
 
 const items = [
@@ -21,13 +22,14 @@ const items = [
 ];
 
 export default function Convert() {
-  const { register, handleSubmit, setValue } = useForm<FormValues>();
+  const { register, handleSubmit, setValue, control } = useForm<FormValues>();
 
   const handleOnClick: SubmitHandler<FormValues> = (data) => {
     const res = regConvert({
       sourceString: data.raw,
       bitBucketRepoLink: data.url,
       projectPrefix: data.prefix,
+      type: Number(data.type.id),
     });
     setValue('result', res || '');
   };
@@ -38,44 +40,57 @@ export default function Convert() {
       className="flex flex-col"
       onSubmit={handleSubmit(handleOnClick)}
     >
-      <div className="grid md:grid-cols-[250px_minmax(900px,_1fr)] gap-4">
+      <div className="grid gap-4 md:grid-cols-[350px_minmax(900px,_1fr)]">
         <div className="flex flex-col gap-4">
-          <div className="w-full flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-1">
             <label htmlFor="projectPrefix">Project Prefix</label>
             <input
               id="projectPrefix"
-              className="mt-3 border w-[inherit] rounded-md p-2 resize-none focus:border-blue-500 outline-0 placeholder:accent-gray-600 text-gray-700"
+              className="mt-3 w-[inherit] resize-none rounded-md border p-2 text-gray-700 outline-0 placeholder:accent-gray-600 focus:border-blue-500"
               placeholder="Project Prefix. EG: FTD"
               {...register('prefix', { required: true })}
             />
           </div>
-          <div className="w-full flex flex-col gap-1">
+          <div className="flex w-full flex-col gap-1">
             <label htmlFor="projectPrefix">Repo Pull Requests URL</label>
             <textarea
               id="projectPrefix"
               rows={4}
-              className="mt-3 border w-[inherit] rounded-md p-2 resize-none focus:border-blue-500 outline-0 placeholder:accent-gray-600 text-gray-700"
+              className="mt-3 w-[inherit] resize-none rounded-md border p-2 text-gray-700 outline-0 placeholder:accent-gray-600 focus:border-blue-500"
               placeholder="Repo Pull Requests URL. Eg: https://bitbucket.org/est-rouge/ftd-admin-console/pull-requests/"
               {...register('url', { required: true })}
             />
           </div>
-          <div className="w-full flex flex-row">
-            <Select items={items} label={'T'} />
-            {/*<button*/}
-            {/*  type="button"*/}
-            {/*  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"*/}
-            {/*  role="button"*/}
-            {/*  onClick={handleSubmit(handleOnClick)}*/}
-            {/*>*/}
-            {/*  Convert*/}
-            {/*</button>*/}
+          <div className="flex w-full flex-row">
+            <Controller
+              control={control}
+              name="type"
+              rules={{ required: true }}
+              render={({ field: { onChange, onBlur, value, name, ref } }) => (
+                <Select
+                  items={items}
+                  onChange={onChange}
+                  defaultValue={items[0]}
+                  label={'Select type'}
+                  placeholder="Type"
+                />
+              )}
+            />
           </div>
+          <button
+            type="button"
+            className="mb-2 mr-2 rounded-lg bg-blue-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+            role="button"
+            onClick={handleSubmit(handleOnClick)}
+          >
+            Convert
+          </button>
         </div>
-        <div className="h-[calc(100dvh-60px)] grid grid-rows-2 gap-4">
+        <div className="grid h-[calc(100dvh-60px)] grid-rows-2 gap-4">
           <div className="flex flex-col">
             <textarea
               placeholder="Raw"
-              className="basis-full border rounded-md p-2 resize-none focus:border-blue-500 outline-0"
+              className="basis-full resize-none rounded-md border p-2 outline-0 focus:border-blue-500"
               {...register('raw', { required: true })}
             />
           </div>
@@ -83,7 +98,7 @@ export default function Convert() {
           <div className="flex flex-col">
             <textarea
               placeholder="Result"
-              className="basis-full border rounded-md p-2 resize-none focus:border-blue-500 outline-0"
+              className="basis-full resize-none rounded-md border p-2 outline-0 focus:border-blue-500"
               {...register('result')}
             />
           </div>

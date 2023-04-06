@@ -1,17 +1,22 @@
+import { RESULT_TYPES } from '@/constants';
+
 type TRegConvertParams = {
   sourceString: string;
   bitBucketRepoLink: string;
   projectPrefix: string;
+  type: number;
 };
 type TRegConvert = ({
   sourceString,
   bitBucketRepoLink,
   projectPrefix,
+  type,
 }: TRegConvertParams) => string | undefined;
 export const regConvert: TRegConvert = ({
   sourceString,
   bitBucketRepoLink,
   projectPrefix,
+  type,
 }) => {
   const regexVariables = generateDefaultVariables(projectPrefix);
 
@@ -19,13 +24,16 @@ export const regConvert: TRegConvert = ({
     sourceString,
     bitBucketRepoLink,
     regexVariables,
+    type,
   );
   const res = processMatches(
     modifiedSourceString,
-    regexVariables.regexForReserve,
+    type === RESULT_TYPES.FOR_DEV
+      ? regexVariables.regexForReserve
+      : regexVariables.regexTitleOnly,
   );
 
-  return generateFinalRes(res);
+  return generateFinalRes(res, /(CMD-[0-9]+)/g, type === RESULT_TYPES.FOR_DEV);
 };
 
 function extractNumber(str: string) {
@@ -33,24 +41,25 @@ function extractNumber(str: string) {
   return match ? Number(match[2]) : null;
 }
 
-function generateFinalRes(res: string[]) {
-  const regex = /(CMD-[0-9]+)/g;
+function generateFinalRes(res: string[], regex: RegExp, join: boolean) {
   const uniqueArr = Array.from(
     new Set(res.map((ele) => ele.match(regex)?.[0])),
   );
 
   return uniqueArr.reduce((finalRes, ticket) => {
     const groupPrs = res.filter((item) => item.includes(`[${ticket}]`));
-    if (groupPrs.length <= 1) return `${finalRes}${groupPrs[0].trim()}\n`;
+    if (join) {
+      if (groupPrs.length <= 1) return `${finalRes}${groupPrs[0].trim()}\n`;
+      const [, ...cloneGroupPRs] = groupPrs;
+      const arrayPrUrls = cloneGroupPRs
+        .reverse()
+        .map((item) => item.match(/\[PR#.+\)/)?.[0] || '');
 
-    const [, ...cloneGroupPRs] = groupPrs;
-    const arrayPrUrls = cloneGroupPRs
-      .reverse()
-      .map((item) => item.match(/\[PR#.+\)/)?.[0] || '');
-
-    return `${finalRes}${groupPrs[0].trim()}, ${arrayPrUrls
-      .join(', ')
-      .trim()}\n`;
+      return `${finalRes}${groupPrs[0].trim()}, ${arrayPrUrls
+        .join(', ')
+        .trim()}\n`;
+    }
+    return `${finalRes}${groupPrs[0].trim()}\n`;
   }, '');
 }
 
@@ -58,18 +67,19 @@ function getModifiedSourceString(
   sourceString: string,
   bitBucketRepoLink: string,
   regexVariables: TRegex,
+  type: number,
 ) {
-  console.log('-> bitBucketRepoLink', bitBucketRepoLink);
+  const additionalString =
+    type === RESULT_TYPES.FOR_DEV
+      ? ` [PR#$6](${bitBucketRepoLink.trim()}$6)`
+      : '';
   return sourceString
-    .replace(
-      regexVariables.regex,
-      `* [$1]$3 [PR#$6](${bitBucketRepoLink.trim()}$6)`,
-    )
-    .replace(regexVariables.regexMultilines, '\n')
-    .replace(regexVariables.regexMergin, '');
+    .replace(regexVariables.regex, `* [$1]$3${additionalString}`)
+    .replaceAll(regexVariables.regexMultilines, '\n')
+    .replaceAll(regexVariables.regexMergin, '');
 }
 
-function processMatches(str: string, regexForReserve: any) {
+function processMatches(str: string, regexForReserve: RegExp) {
   let m;
   const res: string[] = [];
 
@@ -92,6 +102,7 @@ type TRegex = {
   regex: RegExp;
   regexMultilines: RegExp;
   regexMergin: RegExp;
+  regexTitleOnly: RegExp;
 };
 
 const generateDefaultVariables = (projectPrefix: string): TRegex => {
@@ -107,5 +118,6 @@ const generateDefaultVariables = (projectPrefix: string): TRegex => {
       `(${projectPrefix.trim()}-[0-9]*)(.*)(\\[PR.*\\))`,
       'gm',
     ),
+    regexTitleOnly: /\*.+/gm,
   };
 };
