@@ -25,6 +25,7 @@ export default function Convert() {
   const { register, handleSubmit, setValue, control } = useForm<FormValues>();
 
   const handleOnClick: SubmitHandler<FormValues> = (data) => {
+    console.log('dooooo');
     const res = regConvert({
       sourceString: data.raw,
       bitBucketRepoLink: data.url,

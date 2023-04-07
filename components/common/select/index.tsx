@@ -1,5 +1,7 @@
 import { useSelect } from 'downshift';
 import classNames from 'classnames';
+import { useEffect } from 'react';
+import { useEffectOnce } from 'usehooks-ts';
 
 export type TItem = {
   id: number | string;
@@ -34,6 +36,12 @@ const Select = ({
     itemToString,
     onSelectedItemChange: (inputValue) => onChange?.(inputValue.selectedItem),
     defaultSelectedItem: defaultValue,
+  });
+
+  useEffectOnce(() => {
+    if (defaultValue && onChange) {
+      onChange(defaultValue);
+    }
   });
 
   function itemToString(item: TItem | null) {
