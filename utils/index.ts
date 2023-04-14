@@ -33,7 +33,9 @@ export const regConvert: TRegConvert = ({
       : regexVariables.regexTitleOnly,
   );
 
-  return generateFinalRes(res, /(CMD-[0-9]+)/g, type === RESULT_TYPES.FOR_DEV);
+  const reg = new RegExp(`(${projectPrefix.trim()}-[0-9]+)`, 'g')
+
+  return generateFinalRes(res, reg, type === RESULT_TYPES.FOR_DEV);
 };
 
 function extractNumber(str: string) {
@@ -48,6 +50,8 @@ function generateFinalRes(res: string[], regex: RegExp, join: boolean) {
 
   return uniqueArr.reduce((finalRes, ticket) => {
     const groupPrs = res.filter((item) => item.includes(`[${ticket}]`));
+    console.log(groupPrs);
+    console.log('-> groupPrs', groupPrs);
     if (join) {
       if (groupPrs.length <= 1) return `${finalRes}${groupPrs[0].trim()}\n`;
       const [, ...cloneGroupPRs] = groupPrs;
