@@ -1,6 +1,6 @@
-import { Controller, SubmitHandler, useForm } from 'react-hook-form';
-import { regConvert } from '@/utils';
-import Select, { TItem } from '@/components/common/select';
+import {Controller, SubmitHandler, useForm} from 'react-hook-form';
+import {parseDailyReport, regConvert} from '@/utils';
+import Select, {TItem} from '@/components/common/select';
 
 type FormValues = {
   prefix: string;
@@ -11,21 +11,27 @@ type FormValues = {
 };
 
 const items = [
+  {id: 1, value: 'Daily report'},
   {
-    id: 1,
+    id: 2,
     value: 'Dev Release Note',
   },
   {
-    id: 2,
+    id: 3,
     value: 'PO Release Note',
   },
 ];
 
 export default function Convert() {
-  const { register, handleSubmit, setValue, control } = useForm<FormValues>();
-
+  const {register, handleSubmit, setValue, control, watch} =
+    useForm<FormValues>();
+  
   const handleOnClick: SubmitHandler<FormValues> = (data) => {
-    console.log('dooooo');
+    if (data.type.id === 1) {
+      const res = parseDailyReport(data.raw);
+      setValue('result', res || '');
+      return;
+    }
     const res = regConvert({
       sourceString: data.raw,
       bitBucketRepoLink: data.url,
@@ -34,7 +40,7 @@ export default function Convert() {
     });
     setValue('result', res || '');
   };
-
+  
   return (
     <form
       name="basic"
@@ -49,7 +55,7 @@ export default function Convert() {
               id="projectPrefix"
               className="mt-3 w-[inherit] resize-none rounded-md border p-2 text-gray-700 outline-0 placeholder:accent-gray-600 focus:border-blue-500"
               placeholder="Project Prefix. EG: FTD"
-              {...register('prefix', { required: true })}
+              {...register('prefix', {required: watch('type') && watch('type')?.id !== 1})}
             />
           </div>
           <div className="flex w-full flex-col gap-1">
@@ -59,15 +65,15 @@ export default function Convert() {
               rows={4}
               className="mt-3 w-[inherit] resize-none rounded-md border p-2 text-gray-700 outline-0 placeholder:accent-gray-600 focus:border-blue-500"
               placeholder="Repo Pull Requests URL. Eg: https://bitbucket.org/est-rouge/ftd-admin-console/pull-requests/"
-              {...register('url', { required: true })}
+              {...register('url', {required: watch('type') && watch('type')?.id !== 1})}
             />
           </div>
           <div className="flex w-full flex-row">
             <Controller
               control={control}
               name="type"
-              rules={{ required: true }}
-              render={({ field: { onChange, onBlur, value, name, ref } }) => (
+              rules={{required: true}}
+              render={({field: {onChange, onBlur, value, name, ref}}) => (
                 <Select
                   items={items}
                   onChange={onChange}
@@ -92,10 +98,10 @@ export default function Convert() {
             <textarea
               placeholder="Raw"
               className="basis-full resize-none rounded-md border p-2 outline-0 focus:border-blue-500"
-              {...register('raw', { required: true })}
+              {...register('raw', {required: true})}
             />
           </div>
-
+          
           <div className="flex flex-col">
             <textarea
               placeholder="Result"
