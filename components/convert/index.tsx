@@ -25,13 +25,14 @@ const items = [
 export default function Convert() {
   const {register, handleSubmit, setValue, control, watch} =
     useForm<FormValues>();
-  
+
   const handleOnClick: SubmitHandler<FormValues> = (data) => {
     if (data.type.id === 1) {
       const res = parseDailyReport(data.raw);
       setValue('result', res || '');
       return;
     }
+    console.log('in', data.type.id);
     const res = regConvert({
       sourceString: data.raw,
       bitBucketRepoLink: data.url,
@@ -40,7 +41,7 @@ export default function Convert() {
     });
     setValue('result', res || '');
   };
-  
+
   return (
     <form
       name="basic"
@@ -101,7 +102,7 @@ export default function Convert() {
               {...register('raw', {required: true})}
             />
           </div>
-          
+
           <div className="flex flex-col">
             <textarea
               placeholder="Result"

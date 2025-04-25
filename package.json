@@ -31,5 +31,6 @@
     "postcss": "^8.4.21",
     "prettier": "^2.8.7",
     "tailwindcss": "^3.3.1"
-  }
+  },
+  "packageManager": "yarn@3.3.1+sha256.1d2760eb5c0e525abe9c5306fac5fe0b5628c0955072a0da2f4043524497526a"
 }
